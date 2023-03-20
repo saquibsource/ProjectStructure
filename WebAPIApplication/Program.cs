@@ -40,6 +40,7 @@ namespace WebAPIApplication
             }
             catch (Exception ex)
             {
+                throw;
             }
         }
     }

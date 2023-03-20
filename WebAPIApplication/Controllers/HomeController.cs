@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
+using System.Security.Claims;
 using WebAPIApplication.Security;
 
 namespace WebAPIApplication.Controllers
@@ -28,10 +27,6 @@ namespace WebAPIApplication.Controllers
         [Authorize]
         public IActionResult Get()
         {
-            if (!_tokenProvider.IsTokenFromTrustedAudience(HttpContext))
-            {
-                return Unauthorized();
-            }
             _logger.LogInformation("GetWeatherForecast Information");
             _logger.LogWarning("GetWeatherForecast Warning");
             _logger.LogError("GetWeatherForecast Error");
@@ -39,13 +34,51 @@ namespace WebAPIApplication.Controllers
         }
 
         [HttpGet]
-        [Route("Generatetoken")]
-        public IActionResult Generatetoken()
+        [Route("Login")]
+        public IActionResult Login()
         {
-           
-            _logger.LogInformation("Generatetoken Information");
-
             return Ok(_tokenProvider.CreateToken(HttpContext.User, false,HttpContext.Request.Host.Value));
+        }
+
+        [HttpGet("signinwithgoogle")]
+        public IActionResult SignInwithGoogle()
+        {
+            try
+            {
+                var redirectUrl = Url.Action("CallBack", "Auth");
+                var properties = new AuthenticationProperties
+                {
+                    RedirectUri = redirectUrl
+                };
+                var response = Challenge(properties, GoogleDefaults.AuthenticationScheme);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                var result = ex;
+                throw;
+            }
+
+        }
+
+        [HttpGet("CallBack")]
+        public async Task<IActionResult> Callback()
+        {
+            var authResult = await HttpContext.AuthenticateAsync("Google");
+            if (authResult.Succeeded)
+            {
+                var emailClaim = authResult.Principal.FindFirst(ClaimTypes.Email);
+                var email = emailClaim.Value; // Retrieve the user's email address from the authentication result
+
+                // Use the email address to sign the user in to your application
+                // ...
+
+                return RedirectToAction("Index", "Home");
+            }
+            else
+            {
+                return RedirectToAction("Login", "Account");
+            }
         }
 
         [HttpGet]
@@ -58,8 +91,5 @@ namespace WebAPIApplication.Controllers
 
             return Ok(true);
         }
-
-
-
     }
 }

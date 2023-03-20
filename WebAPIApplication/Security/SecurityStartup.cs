@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -19,8 +20,7 @@ namespace WebAPIApplication.Security
 
             byte[] keyBytes = Encoding.UTF8.GetBytes(securitySettings.Jwt.SecretKey);
 
-
-            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear(); // => remove default claims
+           // JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear(); // => remove default claims
 
 
             services
@@ -38,12 +38,18 @@ namespace WebAPIApplication.Security
                         ValidAudiences = securitySettings.Jwt.ValidAudiences.Split(';')
                     };
                     cfg.SaveToken = true;
+                })
+                .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
+                {
+                    options.ClientId = securitySettings.GoogleAuth.ClientId;
+                    options.ClientSecret = securitySettings.GoogleAuth.ClientSecret;
+                    options.Scope.Add("email");
+                    options.Scope.Add("profile");
                 });
 
             services.AddScoped<ITokenProvider, TokenProvider>();
             return services;
         }
-
         public static IApplicationBuilder UseApplicationSecurity(this IApplicationBuilder app)
         {
             IServiceProvider serviceProvider = app.ApplicationServices;
