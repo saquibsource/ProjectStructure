@@ -477,3 +477,4 @@ $RECYCLE.BIN/
 *.lnk
 WebAPIApplication/Serilog/Errorlog-20230316.txt
 WebAPIApplication/Serilog/Errorlog-20230319.txt
+*.txt
