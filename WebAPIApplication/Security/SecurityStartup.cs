@@ -34,7 +34,7 @@ namespace WebAPIApplication.Security
                         ValidateAudience = true,//Validate the recipient of the token is authorized to receive
                         ValidateLifetime = true,//Check if the token is not expired and the signing key of the issuer is valid
                         ValidateIssuerSigningKey = true,//Validate signature of the token 
-                        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+                        IssuerSigningKey = new SymmetricSecurityKey(keyBytes), // Create symmetric key
                         ValidAudiences = securitySettings.Jwt.ValidAudiences.Split(';')
                     };
                     cfg.SaveToken = true;
