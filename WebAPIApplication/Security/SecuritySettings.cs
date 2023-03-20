@@ -12,6 +12,7 @@
         public string SecretKey { get; set; }
         public int TokenValidityInSeconds { get; set; }
         public int TokenValidityInSecondsForRememberMe { get; set; }
+        public string ValidAudiences { get; set; }
     }
 
 

@@ -1,4 +1,5 @@
 using Serilog;
+using WebAPIApplication.Configurations;
 using WebAPIApplication.Security;
 
 namespace WebAPIApplication
@@ -13,8 +14,7 @@ namespace WebAPIApplication
                 builder.Host.UseSerilog();
                 // Add services to the container.
                 IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", optional: false).Build();
-
-                Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(configuration).CreateLogger();
+                builder.Logging.AddApplicationLogging(configuration);
 
                 builder.Services.AddAppSettingsModule(configuration);
                 builder.Services.AddSecurityModule();
@@ -31,7 +31,7 @@ namespace WebAPIApplication
                     app.UseSwagger();
                     app.UseSwaggerUI();
                 }
-                app.UseSerilogRequestLogging();
+                app.UseApplicationLogging();
                 app.UseApplicationSecurity();
 
                 app.MapControllers();

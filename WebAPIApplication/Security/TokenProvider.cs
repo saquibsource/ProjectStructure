@@ -9,7 +9,8 @@ namespace WebAPIApplication.Security
 {
     public interface ITokenProvider
     {
-        string CreateToken(IPrincipal principal, bool rememberMe);
+        string CreateToken(IPrincipal principal, bool rememberMe, string audience=null);
+        bool IsTokenFromTrustedAudience(HttpContext HttpContext);
 
     }
 
@@ -38,7 +39,7 @@ namespace WebAPIApplication.Security
             Init();
         }
 
-        public string CreateToken(IPrincipal principal, bool rememberMe)
+        public string CreateToken(IPrincipal principal, bool rememberMe, string? audience=null)
         {
             var subject = CreateSubject(principal);
             var validity =
@@ -48,9 +49,11 @@ namespace WebAPIApplication.Security
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = subject,
+
+                Subject = subject,  //ClaimIdentity
                 Expires = validity,
-                SigningCredentials = _key
+                SigningCredentials = _key,
+                Audience= audience
             };
 
             var token = _jwtSecurityTokenHandler.CreateToken(tokenDescriptor);
@@ -68,13 +71,23 @@ namespace WebAPIApplication.Security
 
         private static ClaimsIdentity CreateSubject(IPrincipal principal)
         {
-            var username = principal.Identity.Name ?? "Test";
+            ClaimsIdentity claimsIdentity = new ClaimsIdentity();
+            var username = principal.Identity?.Name;
+
+            if (!string.IsNullOrEmpty(username))
+            {
+                claimsIdentity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, username));
+            }
+
             var roles = GetRoles(principal);
-            var authValue = "User";// string.Join(",", roles.Select(it => it.Value));
-            return new ClaimsIdentity(new[] {
-            new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim(AuthoritiesKey, authValue)
-        });
+            if (roles.Any())
+            {
+                foreach (var role in roles)
+                {
+                    claimsIdentity.AddClaim(role);
+                }
+            }
+            return claimsIdentity;
         }
 
         private static IEnumerable<Claim> GetRoles(IPrincipal principal)
@@ -82,6 +95,47 @@ namespace WebAPIApplication.Security
             return principal is ClaimsPrincipal user
                 ? user.FindAll(it => it.Type == ClaimTypes.Role)
                 : Enumerable.Empty<Claim>();
+        }
+
+        public static IEnumerable<Claim> GetAllClaimsFromToken(HttpContext HttpContext)
+        {
+            try
+            {
+                var accessToken = HttpContext.Request.Headers["Authorization"].ToString()?.Split(' ').Last();
+
+                var jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+
+                return jwt.Claims;
+            }
+            catch (Exception e)
+            {
+                throw e;
+                //claims = null;
+            }
+        }
+
+        public bool IsTokenFromTrustedAudience(HttpContext HttpContext)
+        {
+            string authHeader = HttpContext.Request.Headers["Authorization"];
+            string token = authHeader.Split(' ').Last();
+
+            // Decode the JWT token to get the payload
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+
+            // Get the "aud" claim value from the payload
+            var audience = jwtToken.Payload["aud"].ToString().Split(';').ToList();
+
+           // bool areEqual = audience.SequenceEqual(_securitySettings.Jwt.ValidAudiences.Split(';').ToList()); use this if token is returned from google
+
+            if (audience.Contains(HttpContext.Request.Host.Value))  //
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 }

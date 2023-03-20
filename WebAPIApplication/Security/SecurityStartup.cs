@@ -31,11 +31,13 @@ namespace WebAPIApplication.Security
                     {
 
                         ValidateIssuer = false, //Validate the server that generates the token.
-                        ValidateAudience = false,//Validate the recipient of the token is authorized to receive
+                        ValidateAudience = true,//Validate the recipient of the token is authorized to receive
                         ValidateLifetime = true,//Check if the token is not expired and the signing key of the issuer is valid
                         ValidateIssuerSigningKey = true,//Validate signature of the token 
-                        IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
+                        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+                        ValidAudiences = securitySettings.Jwt.ValidAudiences.Split(';')
                     };
+                    cfg.SaveToken = true;
                 });
 
             services.AddScoped<ITokenProvider, TokenProvider>();
